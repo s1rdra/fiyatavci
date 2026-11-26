@@ -1,0 +1,11 @@
+{
+  "request_code": "POST /auth/code",
+  "login": "POST /auth/login",
+  "me": "GET /auth/me",
+  "email_field": "email",
+  "code_field": "code",
+  "token_field": "token",
+  "test_email_domain": "example.com",
+  "email_must_end_with": "",
+  "app_name": "FiyatAvcı"
+}

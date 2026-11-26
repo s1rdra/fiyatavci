@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FiyatAvcı — Hedef fiyat</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- serves: REQ-002, REQ-003, REQ-006 -->
+<main class="phone">
+  <h1>Hedef fiyat</h1>
+  <div class="card">
+    <div class="row">
+      <div class="thumb" id="thumb">🛒</div>
+      <div class="grow">
+        <p class="name" id="product-name"></p>
+        <p class="note" id="product-site"></p>
+        <p class="price" id="product-price"></p>
+      </div>
+    </div>
+  </div>
+  <form id="target-form" novalidate>
+    <label for="target">Hedef fiyat (TL)</label>
+    <input id="target" inputmode="decimal" placeholder="1100">
+    <p id="empty" class="error hidden">Bir hedef fiyat yaz: örneğin 1100.</p>
+    <button class="button" type="submit">Takibi başlat</button>
+  </form>
+  <a class="button secondary" href="home.html">Takip listeme dön</a>
+</main>
+<script type="module">
+  const pending = JSON.parse(sessionStorage.getItem("pendingProduct") || "null");
+  if (!pending) {
+    location.href = "home.html";
+  } else {
+    document.getElementById("product-name").textContent = pending.name;
+    document.getElementById("product-site").textContent = pending.site;
+    document.getElementById("product-price").textContent =
+      new Intl.NumberFormat("tr-TR").format(pending.price) + " TL";
+    if (pending.image) {
+      const thumb = document.getElementById("thumb");
+      const img = document.createElement("img");
+      img.src = pending.image;
+      img.alt = pending.name;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "8px";
+      img.onerror = () => { thumb.textContent = "🛒"; };
+      thumb.textContent = "";
+      thumb.appendChild(img);
+    }
+  }
+
+  document.getElementById("target-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const errorEl = document.getElementById("empty");
+    errorEl.classList.add("hidden");
+    const raw = document.getElementById("target").value.trim().replace(",", ".");
+    if (raw === "" || isNaN(Number(raw)) || Number(raw) <= 0) {
+      errorEl.textContent = "Bir hedef fiyat yaz: örneğin 1100.";
+      errorEl.classList.remove("hidden");
+      return;
+    }
+
+    const response = await fetch(`/products/${pending.id}/target`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ target_price: Number(raw) }),
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      location.href = "login.html";
+      return;
+    }
+    if (response.status !== 200) {
+      errorEl.textContent = data.detail || "Hedef fiyat kaydedilemedi.";
+      errorEl.classList.remove("hidden");
+      return;
+    }
+    sessionStorage.setItem("justStarted", JSON.stringify(data));
+    sessionStorage.removeItem("pendingProduct");
+    location.href = "started.html";
+  });
+</script>
+</body>
+</html>

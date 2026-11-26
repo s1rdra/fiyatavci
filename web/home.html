@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FiyatAvcı — Takip listem</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- serves: REQ-002, REQ-003, REQ-004, REQ-006, REQ-011 -->
+<main class="phone">
+  <div class="top">
+    <h1>Takip listem</h1>
+    <span class="badge" id="count"></span>
+  </div>
+  <p class="note" id="check-note"></p>
+  <div id="list"></div>
+  <p id="empty-note" class="note hidden">Henüz ürün eklemedin.</p>
+  <div class="split">
+    <a class="button" href="add.html">Ürün ekle</a>
+    <button class="button secondary" id="check-now">Fiyatları kontrol et</button>
+  </div>
+  <nav class="tabs">
+    <a href="home.html">Takip listem</a>
+    <a href="add.html">Ürün ekle</a>
+    <a href="notification.html">Bildirimler</a>
+    <a href="chat.html">Alım tavsiyesi</a>
+    <a href="#" id="logout">Çıkış</a>
+  </nav>
+</main>
+<script type="module">
+  async function api(method, path) {
+    const response = await fetch(path, {
+      method,
+      headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+    });
+    if (response.status === 401) {
+      location.href = "login.html";
+      throw new Error("not logged in");
+    }
+    return { status: response.status, data: await response.json().catch(() => ({})) };
+  }
+
+  function formatPrice(value) {
+    return new Intl.NumberFormat("tr-TR").format(value) + " TL";
+  }
+
+  function formatWhen(iso) {
+    if (!iso) return "henüz yok";
+    const date = new Date(iso);
+    return date.toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+  }
+
+  async function render() {
+    const { data } = await api("GET", "/products");
+    const { data: status } = await api("GET", "/price-check/status");
+    document.getElementById("check-note").textContent =
+      `Fiyatlar 6 saatte bir kontrol edilir. Son kontrol: ${formatWhen(status.last_checked_at)}.`;
+
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+    document.getElementById("count").textContent = `${data.length} ürün`;
+    document.getElementById("empty-note").classList.toggle("hidden", data.length !== 0);
+
+    data.forEach((product) => {
+      const card = document.createElement("div");
+      card.className = "card";
+      const row = document.createElement("div");
+      row.className = "row";
+
+      const thumb = document.createElement("div");
+      thumb.className = "thumb";
+      if (product.image) {
+        const img = document.createElement("img");
+        img.src = product.image;
+        img.alt = product.name;
+        img.style.width = "100%";
+        img.style.height = "100%";
+        img.style.objectFit = "cover";
+        img.style.borderRadius = "8px";
+        img.onerror = () => { thumb.textContent = "🛒"; };
+        thumb.appendChild(img);
+      } else {
+        thumb.textContent = "🛒";
+      }
+
+      const grow = document.createElement("div");
+      grow.className = "grow";
+      const name = document.createElement("p");
+      name.className = "name";
+      name.textContent = product.name;
+      const note = document.createElement("p");
+      note.className = "note";
+      note.textContent = product.target_price
+        ? `${product.site} · hedef ${formatPrice(product.target_price)}`
+        : product.site;
+      const price = document.createElement("p");
+      price.className = "price";
+      price.textContent = formatPrice(product.price);
+      if (product.target_price && product.price <= product.target_price) {
+        const badge = document.createElement("span");
+        badge.className = "badge ok";
+        badge.textContent = "Hedefe indi";
+        price.append(" ", badge);
+      }
+      grow.append(name, note, price);
+      row.append(thumb, grow);
+      card.append(row);
+      list.append(card);
+    });
+  }
+
+  document.getElementById("check-now").addEventListener("click", async () => {
+    await api("POST", "/price-check").catch(() => {});
+    await render();
+  });
+
+  document.getElementById("logout").addEventListener("click", (event) => {
+    event.preventDefault();
+    sessionStorage.removeItem("token");
+    location.href = "login.html";
+  });
+
+  render();
+</script>
+</body>
+</html>

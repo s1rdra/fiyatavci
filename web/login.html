@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FiyatAvcı — Giriş</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- serves: REQ-001, REQ-006 -->
+<main class="phone">
+  <h1>FiyatAvcı</h1>
+
+  <section id="step-email">
+    <p>E-posta adresinle giriş yap. Sana 4 haneli bir kod göndereceğiz; şifre yok.</p>
+    <form id="email-form">
+      <label for="email">E-posta adresi</label>
+      <input id="email" type="email" required placeholder="deniz@example.com">
+      <p id="email-error" class="error hidden"></p>
+      <button class="button" type="submit">Kod gönder</button>
+    </form>
+    <p class="note">Hesabın yoksa aynı adımla kaydolursun: ilk girişte hesabın açılır.</p>
+  </section>
+
+  <section id="step-code" class="hidden">
+    <h1>Kodu gir</h1>
+    <p id="sent-to" class="note"></p>
+    <form id="code-form">
+      <label for="code">Kod</label>
+      <input id="code" inputmode="numeric" maxlength="4" required>
+      <p id="code-error" class="error hidden"></p>
+      <button id="login" class="button" type="submit">Giriş yap</button>
+    </form>
+    <a class="button secondary" href="#" id="resend">Yeni kod gönder</a>
+  </section>
+</main>
+<script type="module">
+  const email_el = document.getElementById("email");
+  const emailForm = document.getElementById("email-form");
+  const codeForm = document.getElementById("code-form");
+  const stepEmail = document.getElementById("step-email");
+  const stepCode = document.getElementById("step-code");
+  const emailError = document.getElementById("email-error");
+  const codeError = document.getElementById("code-error");
+
+  function showEmailError(message) {
+    emailError.textContent = message;
+    emailError.classList.remove("hidden");
+  }
+
+  function showCodeError(message) {
+    codeError.textContent = message;
+    codeError.classList.remove("hidden");
+  }
+
+  emailForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    emailError.classList.add("hidden");
+    const response = await fetch("/auth/code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email_el.value }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 200) {
+      document.getElementById("sent-to").textContent = email_el.value + " adresine 4 haneli bir kod gönderdik. Kod 10 dakika geçerli.";
+      stepEmail.classList.add("hidden");
+      stepCode.classList.remove("hidden");
+    } else if (response.status === 429) {
+      showEmailError("Yeni kod için bir dakika bekle.");
+    } else {
+      showEmailError(data.detail || "Bir şeyler ters gitti.");
+    }
+  });
+
+  codeForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    codeError.classList.add("hidden");
+    const response = await fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email_el.value, code: document.getElementById("code").value }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.status === 200) {
+      sessionStorage.setItem("token", data.token);
+      location.href = "home.html";
+    } else if (response.status === 429) {
+      showCodeError("3 kez yanlış kod girildi. Bu e-posta 15 dakika kilitlendi.");
+    } else {
+      showCodeError("Yanlış kod. E-postanı kontrol edip tekrar dene.");
+    }
+  });
+
+  document.getElementById("resend").addEventListener("click", (event) => {
+    event.preventDefault();
+    stepCode.classList.add("hidden");
+    stepEmail.classList.remove("hidden");
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FiyatAvcı — Ürün ekle</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- serves: REQ-002, REQ-006 -->
+<main class="phone">
+  <h1>Ürün ekle</h1>
+  <p>Takip etmek istediğin ürünün online mağazadaki linkini yapıştır.</p>
+  <form id="add-form">
+    <label for="link">Ürün linki</label>
+    <input id="link" type="url" required placeholder="https://...">
+    <p id="error" class="error hidden"></p>
+    <button id="submit" class="button" type="submit">Ürünü getir</button>
+  </form>
+  <a class="button secondary" href="home.html">Vazgeç</a>
+  <nav class="tabs">
+    <a href="home.html">Takip listem</a>
+    <a href="add.html">Ürün ekle</a>
+    <a href="#" id="logout">Çıkış</a>
+  </nav>
+</main>
+<script type="module">
+  const form = document.getElementById("add-form");
+  const errorEl = document.getElementById("error");
+  const submitBtn = document.getElementById("submit");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    errorEl.classList.add("hidden");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Getiriliyor...";
+
+    const response = await fetch("/products", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ link: document.getElementById("link").value }),
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (response.status === 401) {
+      location.href = "login.html";
+      return;
+    }
+    if (response.status === 201) {
+      sessionStorage.setItem("pendingProduct", JSON.stringify(data));
+      location.href = "target.html";
+      return;
+    }
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Ürünü getir";
+    errorEl.textContent = data.detail || "Ürün eklenemedi.";
+    errorEl.classList.remove("hidden");
+  });
+
+  document.getElementById("logout").addEventListener("click", (event) => {
+    event.preventDefault();
+    sessionStorage.removeItem("token");
+    location.href = "login.html";
+  });
+</script>
+</body>
+</html>

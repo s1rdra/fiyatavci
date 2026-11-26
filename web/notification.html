@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FiyatAvcı — Bildirimler</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- serves: REQ-003, REQ-006 -->
+<main class="phone">
+  <h1>Bildirimler</h1>
+  <div id="list"></div>
+  <p id="empty-note" class="note hidden">Henüz bir bildirim yok.</p>
+  <nav class="tabs">
+    <a href="home.html">Takip listem</a>
+    <a href="add.html">Ürün ekle</a>
+    <a href="notification.html">Bildirimler</a>
+    <a href="#" id="logout">Çıkış</a>
+  </nav>
+</main>
+<script type="module">
+  async function api(method, path) {
+    const response = await fetch(path, {
+      method,
+      headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+    });
+    if (response.status === 401) {
+      location.href = "login.html";
+      throw new Error("not logged in");
+    }
+    return { status: response.status, data: await response.json().catch(() => ({})) };
+  }
+
+  function formatWhen(iso) {
+    const date = new Date(iso);
+    return date.toLocaleString("tr-TR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+  }
+
+  (async () => {
+    const { data } = await api("GET", "/notifications");
+    const list = document.getElementById("list");
+    document.getElementById("empty-note").classList.toggle("hidden", data.length !== 0);
+    data.forEach((notification) => {
+      const link = document.createElement("a");
+      link.className = "push";
+      link.href = "home.html";
+      const when = document.createElement("p");
+      when.className = "note";
+      when.textContent = `FiyatAvcı · ${formatWhen(notification.at)}`;
+      const title = document.createElement("p");
+      const strong = document.createElement("strong");
+      strong.textContent = "Fiyat hedefe indi!";
+      title.appendChild(strong);
+      const body = document.createElement("p");
+      body.textContent = notification.message;
+      link.append(when, title, body);
+      list.append(link);
+    });
+  })();
+
+  document.getElementById("logout").addEventListener("click", (event) => {
+    event.preventDefault();
+    sessionStorage.removeItem("token");
+    location.href = "login.html";
+  });
+</script>
+</body>
+</html>

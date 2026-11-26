@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FiyatAvcı — Takip başladı</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- serves: REQ-003, REQ-004, REQ-006 -->
+<main class="phone">
+  <h1>Takip başladı</h1>
+  <p class="success" id="success-note"></p>
+  <p>Fiyatı 6 saatte bir kontrol edeceğiz. Fiyat hedefine inince sana bildirim göndereceğiz.</p>
+  <a class="button" href="home.html">Takip listeme dön</a>
+</main>
+<script type="module">
+  const started = JSON.parse(sessionStorage.getItem("justStarted") || "null");
+  const note = document.getElementById("success-note");
+  if (!started) {
+    location.href = "home.html";
+  } else {
+    const target = new Intl.NumberFormat("tr-TR").format(started.target_price) + " TL";
+    note.textContent = `${started.name} takip listene eklendi. Hedef: ${target}.`;
+  }
+</script>
+</body>
+</html>
