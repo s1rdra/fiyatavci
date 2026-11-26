@@ -31,7 +31,7 @@ The backend went through a hostile review; the attacks were reproduced as tests 
 | Server | Python, FastAPI, Pydantic |
 | Scraping | requests, BeautifulSoup, lxml |
 | AI | OpenAI-compatible chat API (Gemini / Groq) |
-| Testing | pytest, Selenium, GitHub Actions |
+| Testing | pytest |
 
 ## Run locally
 ```bash
